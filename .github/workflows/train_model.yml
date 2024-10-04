@@ -1,0 +1,67 @@
+name: Train Cat-Dog Model
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types:
+      - completed
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  train-model:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pull the latest Docker image
+      run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:version-01
+
+    - name: Train the model
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}/data:/app/data \
+          -v ${{ github.workspace }}/outputs:/app/outputs \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:version-01 \
+          python src/train.py experiment=catdog_ex trainer.max_epochs=5 model.base_model=resnet18
+
+    - name: Check accuracy
+      run: |
+        accuracy=$(grep -oP 'val/acc": \K[0-9.]+' outputs/train/logs/metrics.json | tail -n 1)
+        echo "Final validation accuracy: $accuracy"
+        if (( $(echo "$accuracy < 0.95" | bc -l) )); then
+          echo "Accuracy is below 95%. Failing the workflow."
+          exit 1
+        fi
+
+    - name: Upload model checkpoint
+      uses: actions/upload-artifact@v3
+      with:
+        name: model-checkpoint
+        path: outputs/train/checkpoints/
+        if-no-files-found: error
+
+    - name: Upload training logs
+      uses: actions/upload-artifact@v3
+      with:
+        name: training-logs
+        path: outputs/train/logs/
+        if-no-files-found: error
+
+    - name: Upload config
+      uses: actions/upload-artifact@v3
+      with:
+        name: config
+        path: outputs/train/.hydra/
+        if-no-files-found: error
