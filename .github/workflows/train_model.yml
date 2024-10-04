@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
 jobs:
   train-model:
@@ -25,15 +25,18 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Set lowercase image name
+      run: echo "LOWERCASE_IMAGE_NAME=$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
     - name: Pull the latest Docker image
-      run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:version-01
+      run: docker pull ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:version-01
 
     - name: Train the model
       run: |
         docker run --rm \
           -v ${{ github.workspace }}/data:/app/data \
           -v ${{ github.workspace }}/outputs:/app/outputs \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:version-01 \
+          ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:version-01 \
           python src/train.py experiment=catdog_ex trainer.max_epochs=5 model.base_model=resnet18
 
     - name: Check accuracy
