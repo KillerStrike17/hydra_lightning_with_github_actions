@@ -36,12 +36,14 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}/data:/app/data \
           -v ${{ github.workspace }}/logs:/app/logs \
+          -v ${{ github.workspace }}/hydra_output:/app/hydra_output \
           ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:version-01 \
-          python src/train.py experiment=catdog_ex trainer.max_epochs=1 model.base_model=resnet18 +trainer.log_every_n_steps=5
+          python src/train.py experiment=catdog_ex trainer.max_epochs=1 model.base_model=resnet18 +trainer.log_every_n_steps=5 hydra.run.dir=/app/hydra_output
 
     - name: Fix permissions
       run: |
         sudo chown -R $USER:$USER ${{ github.workspace }}/logs
+        sudo chown -R $USER:$USER ${{ github.workspace }}/hydra_output
 
     - name: Check accuracy
       run: |
@@ -75,7 +77,7 @@ jobs:
       with:
         name: config
         path: |
-          ${{ github.workspace }}/logs/train/runs/*/config.yaml
-          ${{ github.workspace }}/logs/train/runs/*/hydra.yaml
-          ${{ github.workspace }}/logs/train/runs/*/overrides.yaml
+          ${{ github.workspace }}/hydra_output/config.yaml
+          ${{ github.workspace }}/hydra_output/hydra.yaml
+          ${{ github.workspace }}/hydra_output/overrides.yaml
         if-no-files-found: error
