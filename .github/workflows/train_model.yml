@@ -36,14 +36,12 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}/data:/app/data \
           -v ${{ github.workspace }}/logs:/app/logs \
-          -v ${{ github.workspace }}/hydra_output:/app/hydra_output \
           ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:version-01 \
-          python src/train.py experiment=catdog_ex trainer.max_epochs=1 model.base_model=resnet18 +trainer.log_every_n_steps=5 hydra.run.dir=/app/hydra_output
+          python src/train.py experiment=catdog_ex trainer.max_epochs=1 model.base_model=resnet18 +trainer.log_every_n_steps=5
 
     - name: Fix permissions
       run: |
         sudo chown -R $USER:$USER ${{ github.workspace }}/logs
-        sudo chown -R $USER:$USER ${{ github.workspace }}/hydra_output
 
     - name: Check accuracy
       run: |
@@ -59,7 +57,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: model-checkpoint
-        path: ${{ github.workspace }}/logs/train/checkpoints/
+        path: ${{ github.workspace }}/logs/train/runs/*/checkpoints/
         if-no-files-found: error
 
     - name: Upload training logs
@@ -67,17 +65,7 @@ jobs:
       with:
         name: training-logs
         path: |
-          ${{ github.workspace }}/logs/train/csv
-          ${{ github.workspace }}/logs/train/tensorboard
-          ${{ github.workspace }}/logs/train/train.log
-        if-no-files-found: error
-
-    - name: Upload config
-      uses: actions/upload-artifact@v3
-      with:
-        name: config
-        path: |
-          ${{ github.workspace }}/hydra_output/config.yaml
-          ${{ github.workspace }}/hydra_output/hydra.yaml
-          ${{ github.workspace }}/hydra_output/overrides.yaml
+          ${{ github.workspace }}/logs/train/runs/*/csv
+          ${{ github.workspace }}/logs/train/runs/*/tensorboard
+          ${{ github.workspace }}/logs/train/runs/*/train.log
         if-no-files-found: error
