@@ -37,7 +37,11 @@ jobs:
           -v ${{ github.workspace }}/data:/app/data \
           -v ${{ github.workspace }}/logs:/app/logs \
           ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:version-01 \
-          python src/train.py experiment=catdog_ex trainer.max_epochs=5 model.base_model=resnet18 +trainer.log_every_n_steps=5
+          python src/train.py experiment=catdog_ex trainer.max_epochs=1 model.base_model=resnet18 +trainer.log_every_n_steps=5
+
+    - name: Fix permissions
+      run: |
+        sudo chown -R $USER:$USER ${{ github.workspace }}/logs
 
     - name: Check accuracy
       run: |
