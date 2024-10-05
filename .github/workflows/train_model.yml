@@ -59,7 +59,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: model-checkpoint
-        path: ${{ github.workspace }}/logs/train/runs/*/checkpoints/
+        path: ${{ github.workspace }}/logs/train/checkpoints/
         if-no-files-found: error
 
     - name: Upload training logs
@@ -67,9 +67,9 @@ jobs:
       with:
         name: training-logs
         path: |
-          ${{ github.workspace }}/logs/train/runs/*/csv
-          ${{ github.workspace }}/logs/train/runs/*/tensorboard
-          ${{ github.workspace }}/logs/train/runs/*/train.log
+          ${{ github.workspace }}/logs/train/csv
+          ${{ github.workspace }}/logs/train/tensorboard
+          ${{ github.workspace }}/logs/train/train.log
         if-no-files-found: error
 
     - name: Upload config
