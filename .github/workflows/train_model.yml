@@ -64,12 +64,18 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: training-logs
-        path: ${{ github.workspace }}/logs/train/runs/*/
+        path: |
+          ${{ github.workspace }}/logs/train/runs/*/csv
+          ${{ github.workspace }}/logs/train/runs/*/tensorboard
+          ${{ github.workspace }}/logs/train/runs/*/train.log
         if-no-files-found: error
 
     - name: Upload config
       uses: actions/upload-artifact@v3
       with:
         name: config
-        path: ${{ github.workspace }}/logs/train/runs/*/.hydra/
+        path: |
+          ${{ github.workspace }}/logs/train/runs/*/config.yaml
+          ${{ github.workspace }}/logs/train/runs/*/hydra.yaml
+          ${{ github.workspace }}/logs/train/runs/*/overrides.yaml
         if-no-files-found: error
