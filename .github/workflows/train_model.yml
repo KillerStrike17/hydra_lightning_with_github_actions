@@ -35,13 +35,14 @@ jobs:
       run: |
         docker run --rm \
           -v ${{ github.workspace }}/data:/app/data \
-          -v ${{ github.workspace }}/outputs:/app/outputs \
+          -v ${{ github.workspace }}/logs:/app/logs \
           ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:version-01 \
           python src/train.py experiment=catdog_ex trainer.max_epochs=5 model.base_model=resnet18 +trainer.log_every_n_steps=5
 
     - name: Check accuracy
       run: |
-        accuracy=$(grep -oP 'val/acc": \K[0-9.]+' outputs/catdog_ex/metrics.json | tail -n 1)
+        latest_run=$(ls -td ${{ github.workspace }}/logs/train/runs/* | head -n 1)
+        accuracy=$(grep -oP 'val/acc": \K[0-9.]+' $latest_run/metrics.json | tail -n 1)
         echo "Final validation accuracy: $accuracy"
         if (( $(echo "$accuracy < 0.95" | bc -l) )); then
           echo "Accuracy is below 95%. Failing the workflow."
@@ -52,19 +53,19 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: model-checkpoint
-        path: outputs/catdog_ex/checkpoints/
+        path: ${{ github.workspace }}/logs/train/runs/*/checkpoints/
         if-no-files-found: error
 
     - name: Upload training logs
       uses: actions/upload-artifact@v3
       with:
         name: training-logs
-        path: outputs/catdog_ex/
+        path: ${{ github.workspace }}/logs/train/runs/*/
         if-no-files-found: error
 
     - name: Upload config
       uses: actions/upload-artifact@v3
       with:
         name: config
-        path: outputs/catdog_ex/.hydra/
+        path: ${{ github.workspace }}/logs/train/runs/*/.hydra/
         if-no-files-found: error
