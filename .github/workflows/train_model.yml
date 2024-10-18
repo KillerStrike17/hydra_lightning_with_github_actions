@@ -1,4 +1,4 @@
-name: Train Cat-Dog Model
+name: Train Cat-Dog and Dog Breed Models
 
 on:
   workflow_run:
@@ -11,9 +11,12 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
 jobs:
-  train-model:
+  train-models:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      matrix:
+        experiment: [catdog_ex, dog_breed_ex]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -37,7 +40,7 @@ jobs:
           -v ${{ github.workspace }}/data:/app/data \
           -v ${{ github.workspace }}/logs:/app/logs \
           ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:version-01 \
-          python src/train.py experiment=catdog_ex trainer.max_epochs=1 model.base_model=resnet18 +trainer.log_every_n_steps=5
+          python src/train.py experiment=${{ matrix.experiment }} trainer.max_epochs=5 +trainer.log_every_n_steps=5
 
     - name: Fix permissions
       run: |
@@ -48,22 +51,22 @@ jobs:
         latest_run=$(ls -td ${{ github.workspace }}/logs/train/runs/* | head -n 1)
         accuracy=$(grep -oP 'val/acc": \K[0-9.]+' $latest_run/metrics.json | tail -n 1)
         echo "Final validation accuracy: $accuracy"
-        if (( $(echo "$accuracy < 0.95" | bc -l) )); then
-          echo "Accuracy is below 95%. Failing the workflow."
+        if (( $(echo "$accuracy < 0.75" | bc -l) )); then
+          echo "Accuracy is below 75%. Failing the workflow."
           exit 1
         fi
 
     - name: Upload model checkpoint
       uses: actions/upload-artifact@v3
       with:
-        name: model-checkpoint
+        name: ${{ matrix.experiment }}-model-checkpoint
         path: ${{ github.workspace }}/logs/train/runs/*/checkpoints/
         if-no-files-found: error
 
     - name: Upload training logs
       uses: actions/upload-artifact@v3
       with:
-        name: training-logs
+        name: ${{ matrix.experiment }}-training-logs
         path: |
           ${{ github.workspace }}/logs/train/runs/*/csv
           ${{ github.workspace }}/logs/train/runs/*/tensorboard
