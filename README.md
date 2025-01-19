@@ -87,7 +87,7 @@ The `configs/` directory contains various configuration files:
 
 ## Testing
 
-Run the tests using:
+Run the tests using
 
 ```
 pytest
